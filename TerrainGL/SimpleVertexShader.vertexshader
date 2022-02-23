@@ -1,0 +1,41 @@
+#version 450 core
+
+layout(location = 0) in vec2 inWorldPos;
+layout(location = 1) in vec2 UVs;
+
+layout(location = 0) smooth out vec2 outUVs;
+layout(location = 1) smooth out vec3 eyeVec;
+
+layout(std140, binding = 0) uniform uniformLayout
+{
+    mat4 viewProjectionMatrix;
+    mat4 viewMatrix;
+    mat4 normalMatrix;
+    vec4 lightDir;
+    vec4 offset;
+    vec4 data;
+    vec4 ambiant;
+    vec4 foamAmbiant;
+    vec4 diffuse;
+    vec4 foamDiffuse;
+    // specular color in rgb and specular power in a
+    vec4 specular;
+    vec4 foamSpecular;
+};
+
+layout(binding = 0) uniform sampler2D heightTexture;
+
+void main()
+{
+    outUVs = UVs;
+    
+    const float h = texture(heightTexture, UVs + offset.xy).r;
+
+    const vec4 position = vec4(inWorldPos.x, h*data.x, inWorldPos.y, 1.0);
+
+    // Should be modelViewMatrix but since we don't transform the model this is fine
+    eyeVec = -normalize((viewMatrix * position).xyz);
+
+    // Should be modelViewProjectionMatrix but since we don't transform the model this is fine
+    gl_Position = viewProjectionMatrix*position;
+}

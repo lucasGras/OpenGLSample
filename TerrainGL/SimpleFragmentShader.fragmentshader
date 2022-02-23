@@ -1,0 +1,46 @@
+#version 450 core
+
+layout(location = 0) out vec4 outColor;
+
+layout(location = 0) smooth in vec2 outUVs;
+layout(location = 1) smooth in vec3 eyeVec;
+
+layout(std140, binding = 0) uniform uniformLayout
+{
+    mat4 viewProjectionMatrix;
+    mat4 viewMatrix;
+    mat4 normalMatrix;
+    vec4 lightDir;    
+    vec4 offset;
+    vec4 data;
+    vec4 ambiant;
+    vec4 foamAmbiant;
+    vec4 diffuse;
+    vec4 foamDiffuse;
+    // specular color in rgb and specular power in a
+    vec4 specular;
+    vec4 foamSpecular;
+};
+
+layout(binding = 1) uniform sampler2D normalTexture;
+layout(binding = 2) uniform sampler2D foamTexture;
+
+void main()
+{
+    const float foam = texture(foamTexture, outUVs).r;
+    const vec3 normal = (normalMatrix*vec4(texture(normalTexture, outUVs + offset.xy).rgb, 0.0f)).rgb;
+
+    vec3 color = mix(ambiant.rgb, foamAmbiant.rgb, foam);
+
+    const float lambertTerm = max(dot(normal, -lightDir.xyz), 0.0f);
+
+    color += lambertTerm * mix(diffuse.rgb, foamDiffuse.rgb, foam);    
+
+    const vec3 r = reflect(lightDir.xyz, normal);
+
+    const vec4 s = mix(specular, foamSpecular, foam);
+
+    color += pow(max(dot(r, eyeVec), 0.0f), s.a) * s.rgb;
+
+    outColor = vec4(color, 1.0);
+}
